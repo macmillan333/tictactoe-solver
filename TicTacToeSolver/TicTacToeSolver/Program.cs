@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace TicTacToeSolver
 {
-    // Game states uniquely correspond to IDs, which are encoded from
+    // Game states uniquely correspond to IDs, which are encoded
     // from the board state and next player.
     //
     // Cell state ID: empty -- 0 | O -- 1 | X -- 2
@@ -68,9 +68,18 @@ namespace TicTacToeSolver
                 }
             }
 
+            // PS. Some boards are impossible, such as ones with multiple lines of Os and Xs.
+            // However, boards with an outcome have no next states, so these impossible
+            // states should be isolated from the game tree.
+            // Thus there's no need to handle them.
+
             // If no outcome, find next states.
             // Previous states will be filled by the Solver class.
-            if (outcome != Outcome.Undecided) return;
+            if (outcome != Outcome.Undecided)
+            {
+                expected_outcome = outcome;
+                return;
+            }
             CellContent next_cell = (next_player == NextPlayer.O) ? CellContent.O : CellContent.X;
             NextPlayer next_next_player = (next_player == NextPlayer.O) ? NextPlayer.X : NextPlayer.O;
             board_state = id / 2;
@@ -122,43 +131,46 @@ namespace TicTacToeSolver
         }
         public NextPlayer next_player;
 
-        public void Print()
+        public void PrintWithIndent(int indent = 0)
         {
-            Console.WriteLine($"State #{id}:");
-            for (int i = 0; i < 9; i++)
-            {
-                if (cells[i] == CellContent.Empty)
-                {
-                    Console.Write(' ');
-                }
-                else
-                {
-                    Console.Write(cells[i]);
-                }
-                if (i % 3 == 2) Console.WriteLine();
-            }
-            Console.WriteLine($"Outcome: {outcome}");
-            Console.WriteLine($"Next player: {next_player}");
-            Console.WriteLine("Previous states:");
-            foreach (int s in prev_states)
-            {
-                Console.WriteLine(s);
-            }
-            Console.WriteLine("Next states:");
-            foreach (int s in next_states)
-            {
-                Console.WriteLine(s);
-            }
+            // Line 1: row 1, state #
+            for (int i = 0; i < indent; i++) Console.Write(' ');
+            for (int i = 0; i < 3; i++) PrintCell(i);
+            Console.WriteLine($"  #{id}");
+
+            // Line 2: row 2, next player
+            for (int i = 0; i < indent; i++) Console.Write(' ');
+            for (int i = 3; i < 6; i++) PrintCell(i);
+            Console.WriteLine($"  Next player: {next_player}");
+
+            // Line 3: row 3, expected outcome
+            for (int i = 0; i < indent; i++) Console.Write(' ');
+            for (int i = 6; i < 9; i++) PrintCell(i);
+            Console.WriteLine($"  Expected outcome: {expected_outcome}");
+
             Console.WriteLine();
+        }
+
+        private void PrintCell(int i)
+        {
+            if (cells[i] == CellContent.Empty)
+            {
+                Console.Write('-');
+            }
+            else
+            {
+                Console.Write(cells[i]);
+            }
         }
     }
 
     class Solver
     {
+        private static List<State> states;
         static void Main(string[] args)
         {
             Console.WriteLine($"Initializing all {State.max_id} states.");
-            List<State> states = new List<State>();
+            states = new List<State>();
             for (int id = 0; id <= State.max_id; id++)
             {
                 states.Add(new State(id));
@@ -173,11 +185,110 @@ namespace TicTacToeSolver
                 }
             }
 
-            states[0].Print();
-            states[12345].Print();
-            states[38588].Print();
-            states[12452].Print();
-            states[25575].Print();
+            Console.WriteLine("Solving.");
+            Queue<int> queue = new Queue<int>();
+            // Initially, put all terminal states into the queue.
+            for (int id = 0; id <= State.max_id; id++)
+            {
+                if (states[id].outcome != State.Outcome.Undecided)
+                {
+                    queue.Enqueue(id);
+                }
+            }
+            // Start solving.
+            while (queue.Count > 0)
+            {
+                int id = queue.Dequeue();
+                if (states[id].expected_outcome == State.Outcome.Undecided)
+                {
+                    if (states[id].next_states.Count == 0)
+                    {
+                        throw new InvalidOperationException($"State #{id} is not terminal, yet it has no next states.");
+                    }
+                    // Attempt to solve this state.
+                    // First, count next states.
+                    State.Outcome winning_outcome = (states[id].next_player == State.NextPlayer.O) ?
+                        State.Outcome.OWins : State.Outcome.XWins;
+                    State.Outcome losing_outcome = (states[id].next_player == State.NextPlayer.O) ?
+                        State.Outcome.XWins : State.Outcome.OWins;
+                    bool has_undecided_next_state = false;
+                    bool has_winning_next_state = false;
+                    bool has_draw_next_state = false;
+                    foreach (int next_id in states[id].next_states)
+                    {
+                        switch (states[next_id].expected_outcome)
+                        {
+                            case State.Outcome.Undecided:
+                                has_undecided_next_state = true;
+                                break;
+                            case State.Outcome.Draw:
+                                has_draw_next_state = true;
+                                break;
+                            case State.Outcome.OWins:
+                            case State.Outcome.XWins:
+                                if (states[next_id].expected_outcome == winning_outcome)
+                                {
+                                    has_winning_next_state = true;
+                                }
+                                break;
+                        }
+                    }
+
+                    if (has_winning_next_state)
+                    {
+                        // If there is a winning next state, we can ignore undecided
+                        // next states and mark the current state as also winning.
+                        states[id].expected_outcome = winning_outcome;
+                    }
+                    else if (has_undecided_next_state)
+                    {
+                        // Otherwise, we must solve all next states before solving the
+                        // current state.
+                        states[id].expected_outcome = State.Outcome.Undecided;
+                    }
+                    else if (has_draw_next_state)
+                    {
+                        // If the current state is not winning, at least we want to
+                        // force a draw.
+                        states[id].expected_outcome = State.Outcome.Draw;
+                    }
+                    else
+                    {
+                        // If all else fails, admit defeat.
+                        states[id].expected_outcome = losing_outcome;
+                    }
+                }
+                if (states[id].expected_outcome == State.Outcome.Undecided)
+                {
+                    // If we cannot solve this state, possibly due to unsolved next states,
+                    // try again later.
+                    queue.Enqueue(id);
+                }
+                else
+                {
+                    // If the state is solved, add all unsolved previous states to the queue
+                    // so we can try to solve them later.
+                    foreach (int prev_id in states[id].prev_states)
+                    {
+                        if (states[prev_id].expected_outcome == State.Outcome.Undecided)
+                        {
+                            queue.Enqueue(prev_id);
+                        }
+                    }
+                }
+            }
+
+            Console.WriteLine("Solved.");
+            // PrintGameTree(root_id: 0, indent: 0);
+        }
+
+        static private void PrintGameTree(int root_id, int indent)
+        {
+            states[root_id].PrintWithIndent(indent);
+            foreach (int next_id in states[root_id].next_states)
+            {
+                PrintGameTree(next_id, indent + 2);
+            }
         }
     }
 }
