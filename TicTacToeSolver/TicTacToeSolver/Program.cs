@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Runtime.CompilerServices;
 
 namespace TicTacToeSolver
@@ -70,6 +71,19 @@ namespace TicTacToeSolver
             // If no outcome, find next states.
             // Previous states will be filled by the Solver class.
             if (outcome != Outcome.Undecided) return;
+            CellContent next_cell = (next_player == NextPlayer.O) ? CellContent.O : CellContent.X;
+            NextPlayer next_next_player = (next_player == NextPlayer.O) ? NextPlayer.X : NextPlayer.O;
+            board_state = id / 2;
+            int delta_state = 6561;
+            for (int i = 0; i < 9; i++)
+            {
+                if (cells[i] == CellContent.Empty)
+                {
+                    int next_board = board_state + (int)next_cell * delta_state;
+                    next_states.Add(next_board * 2 + (int)next_next_player);
+                }
+                delta_state /= 3;
+            }
         }
         public int id;
         // Inclusive.
@@ -125,6 +139,16 @@ namespace TicTacToeSolver
             }
             Console.WriteLine($"Outcome: {outcome}");
             Console.WriteLine($"Next player: {next_player}");
+            Console.WriteLine("Previous states:");
+            foreach (int s in prev_states)
+            {
+                Console.WriteLine(s);
+            }
+            Console.WriteLine("Next states:");
+            foreach (int s in next_states)
+            {
+                Console.WriteLine(s);
+            }
             Console.WriteLine();
         }
     }
@@ -140,11 +164,20 @@ namespace TicTacToeSolver
                 states.Add(new State(id));
             }
 
+            Console.WriteLine("Backfilling previous states.");
+            for (int id = 0; id <= State.max_id; id++)
+            {
+                foreach (int next_id in states[id].next_states)
+                {
+                    states[next_id].prev_states.Add(id);
+                }
+            }
+
             states[0].Print();
             states[12345].Print();
-            states[25467].Print();
-            states[38589].Print();
-            states[24616].Print();
+            states[38588].Print();
+            states[12452].Print();
+            states[25575].Print();
         }
     }
 }
