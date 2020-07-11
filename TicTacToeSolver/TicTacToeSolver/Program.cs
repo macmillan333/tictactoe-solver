@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace TicTacToeSolver
 {
@@ -31,7 +32,44 @@ namespace TicTacToeSolver
             }
 
             // Is there an outcome?
+            outcome = Outcome.Undecided;
+            int[] lines = { 12, 345, 678, 36, 147, 258, 48, 246 };
+            foreach (int line in lines)
+            {
+                int pos_0 = line / 100;
+                int pos_1 = (line % 100) / 10;
+                int pos_2 = line % 10;
+                if (cells[pos_0] == CellContent.O && cells[pos_1] == CellContent.O && cells[pos_2] == CellContent.O)
+                {
+                    outcome = Outcome.OWins;
+                    break;
+                }
+                if (cells[pos_0] == CellContent.X && cells[pos_1] == CellContent.X && cells[pos_2] == CellContent.X)
+                {
+                    outcome = Outcome.XWins;
+                    break;
+                }
+            }
+            if (outcome == Outcome.Undecided)
+            {
+                bool any_cell_empty = false;
+                foreach (CellContent c in cells)
+                {
+                    if (c == CellContent.Empty)
+                    {
+                        any_cell_empty = true;
+                        break;
+                    }
+                }
+                if (!any_cell_empty)
+                {
+                    outcome = Outcome.Draw;
+                }
+            }
 
+            // If no outcome, find next states.
+            // Previous states will be filled by the Solver class.
+            if (outcome != Outcome.Undecided) return;
         }
         public int id;
         // Inclusive.
@@ -104,6 +142,9 @@ namespace TicTacToeSolver
 
             states[0].Print();
             states[12345].Print();
+            states[25467].Print();
+            states[38589].Print();
+            states[24616].Print();
         }
     }
 }
