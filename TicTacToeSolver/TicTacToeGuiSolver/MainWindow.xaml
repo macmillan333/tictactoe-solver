@@ -7,37 +7,19 @@
         mc:Ignorable="d"
         Title="Tic Tac Toe" Height="450" Width="800">
     <Window.Resources>
-        <XmlDataProvider x:Key="myCompany" XPath="Company/Employee">
-            <x:XData>
-                <Company xmlns="">
-                    <Employee Name="Don Hall">
-                        <Employee Name="Alice Ciccu">
-                            <Employee Name="David Pelton">
-                                <Employee Name="Vivian Atlas"/>
-                            </Employee>
-                            <Employee Name="Jeff Price"/>
-                            <Employee Name="Andy Jacobs"/>
-                        </Employee>
-                        <Employee Name="Bill Malone">
-                            <Employee Name="Maurice Taylor"/>
-                            <Employee Name="Sunil Uppal"/>
-                            <Employee Name="Qiang Wang"/>
-                        </Employee>
-                    </Employee>
-                </Company>
-            </x:XData>
-        </XmlDataProvider>
-
-        <!-- Bind the HierarchicalDataTemplate.ItemsSource property to the employees under
-         each Employee element. -->
-        <HierarchicalDataTemplate x:Key="EmployeeTemplate" 
-                              ItemsSource="{Binding XPath=Employee}">
-            <TextBlock Text="{Binding XPath=@Name}" ></TextBlock>
+        <HierarchicalDataTemplate x:Key="StateTemplate" ItemsSource="{Binding Path=NextStates}">
+            <TextBlock Text="{Binding Path=Display}"></TextBlock>
         </HierarchicalDataTemplate>
     </Window.Resources>
-
     <Grid>
-        <TreeView ItemsSource="{Binding Source={StaticResource myCompany}}" 
-              ItemTemplate="{StaticResource EmployeeTemplate}"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Button Name="solve_button" Content="Solve" Grid.Row="0" Click="solve_button_Click" />
+        <!--<TreeView ItemsSource="{Binding Source={StaticResource myCompany}}" 
+              ItemTemplate="{StaticResource EmployeeTemplate}" Grid.Row="1"/>-->
+        <TreeView Name="game_tree" ItemsSource="{Binding}"
+                  ItemTemplate="{StaticResource ResourceKey=StateTemplate}" Grid.Row="1" />
     </Grid>
 </Window>

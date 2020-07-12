@@ -24,5 +24,14 @@ namespace TicTacToeGuiSolver
         {
             InitializeComponent();
         }
+
+        private void solve_button_Click(object sender, RoutedEventArgs e)
+        {
+            State root_state = new State() { ID = 0 };
+            root_state.NextStates.Add(new State() { ID = 123 });
+            root_state.NextStates[0].NextStates.Add(new State() { ID = 124 });
+            root_state.NextStates.Add(new State() { ID = 456 });
+            game_tree.Items.Add(root_state);
+        }
     }
 }
