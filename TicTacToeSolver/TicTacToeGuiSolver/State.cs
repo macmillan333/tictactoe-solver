@@ -147,7 +147,7 @@ namespace TicTacToeGuiSolver
 
                 // Line 3: row 3, expected outcome
                 for (int i = 6; i < 9; i++) display += DisplayCell(i);
-                display += $"  Expected outcome: {expected_outcome}\n";
+                display += $"  Expected outcome: {expected_outcome}";
 
                 return display;
             }
